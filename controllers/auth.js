@@ -25,7 +25,7 @@ const crearUsuario = async (req, res = response) => {
         // Guardar usuario en BD
         await usuario.save();
 
-        const clientHost = NODE_ENV === "production" ? process.env.CLIENT_URL  : "http://localhost:3000"
+        const clientHost = process.env.NODE_ENV === "production" ? process.env.CLIENT_URL : "http://localhost:3000"
         const url = `${clientHost}/auth/register/confirmation/${hash}`;
 
         const mailOptions = {
@@ -89,7 +89,7 @@ const reenviarEmail = async (req, res = response) => {
 
         const { hash, nombre } = await Usuario.findOne({ email });
 
-        const clientHost = NODE_ENV === "production" ? process.env.CLIENT_URL  : "http://localhost:3000"
+        const clientHost = process.env.NODE_ENV === "production" ? process.env.CLIENT_URL : "http://localhost:3000"
         const url = `${clientHost}/auth/register/confirmation/${hash}`;
 
         const mailOptions = {
