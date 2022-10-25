@@ -62,8 +62,6 @@ const getMensajes = async (uid) => {
 
     const contactos = usuario.contactos;
 
-    // console.log(contactos);
-
     let mensajesPorContacto = [];
 
     for (contacto of contactos) {

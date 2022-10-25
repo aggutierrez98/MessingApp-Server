@@ -25,7 +25,8 @@ const crearUsuario = async (req, res = response) => {
         // Guardar usuario en BD
         await usuario.save();
 
-        const url = `http://localhost:3000/auth/register/confirmation/${hash}`;
+        const clientHost = NODE_ENV === "production" ? process.env.CLIENT_URL  : "http://localhost:3000"
+        const url = `${clientHost}/auth/register/confirmation/${hash}`;
 
         const mailOptions = {
             from: "agustinnodeprueba@gmail.com",
@@ -88,7 +89,8 @@ const reenviarEmail = async (req, res = response) => {
 
         const { hash, nombre } = await Usuario.findOne({ email });
 
-        const url = `http://localhost:3000/auth/register/confirmation/${hash}`;
+        const clientHost = NODE_ENV === "production" ? process.env.CLIENT_URL  : "http://localhost:3000"
+        const url = `${clientHost}/auth/register/confirmation/${hash}`;
 
         const mailOptions = {
             from: "agustinnodeprueba@gmail.com",
@@ -153,15 +155,12 @@ const confirmarEmail = async (req, res) => {
 
             const usuario = await Usuario.findByIdAndUpdate(hashExiste._id, { active: true, hash: null })
 
-            console.log("HASTA ACA LLEGO BIEN");
-
             res.status(202).json({
                 ok: true,
                 usuario
             })
 
         } else {
-            console.log("HUBO UN FALLO");
 
             res.status(401).json({
                 ok: false,
