@@ -41,7 +41,7 @@ const crearUsuario = async (req, res = response) => {
                             <span style="color: #e84393">${nombre}</span> 
                             <br></br>
     
-                            Pulsa <a href="${url}">aquí</a> para activar tu cuenta
+                            Pulsa <a href="${url}" target="_blank" rel="noopener noreferrer">aquí</a> para activar tu cuenta
 
                         </p>
                     </td>
@@ -105,7 +105,7 @@ const reenviarEmail = async (req, res = response) => {
                             <span style="color: #e84393">${nombre}</span> 
                             <br></br>
     
-                            Pulsa <a href="${url}">aquí</a> para activar tu cuenta
+                            Pulsa <a href="${url}" target="_blank" rel="noopener noreferrer">aquí</a> para activar tu cuenta
 
                         </p>
                     </td>
