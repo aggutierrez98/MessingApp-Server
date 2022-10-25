@@ -63,7 +63,7 @@ const crearUsuario = async (req, res = response) => {
                     msg: "Error al enviar el email"
                 });
             } else {
-                console.log("Email de confirmacion enviado");
+                console.log(`Email de confirmacion enviado a: ${email}`);
                 res.status(200).json({
                     ok: true,
                 });
@@ -127,7 +127,7 @@ const reenviarEmail = async (req, res = response) => {
                     msg: "Error al enviar el email"
                 });
             } else {
-                console.log("Email de confirmacion enviado");
+                console.log(`Email de confirmacion enviado a: ${email}`);
                 res.status(200).json({
                     ok: true
                 });
