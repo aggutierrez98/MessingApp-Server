@@ -26,7 +26,7 @@ const crearUsuario = async (req, res = response) => {
         await usuario.save();
 
         const clientHost = process.env.NODE_ENV === "production" ? process.env.CLIENT_URL : "http://localhost:3000"
-        const url = `${clientHost}/auth/register/confirmation/${hash}`;
+        const url = `${clientHost}/confirm-email/${hash}`;
 
         const mailOptions = {
             from: "agustinnodeprueba@gmail.com",
@@ -90,7 +90,7 @@ const reenviarEmail = async (req, res = response) => {
         const { hash, nombre } = await Usuario.findOne({ email });
 
         const clientHost = process.env.NODE_ENV === "production" ? process.env.CLIENT_URL : "http://localhost:3000"
-        const url = `${clientHost}/auth/register/confirmation/${hash}`;
+        const url = `${clientHost}/confirm-email/${hash}`;
 
         const mailOptions = {
             from: "agustinnodeprueba@gmail.com",
