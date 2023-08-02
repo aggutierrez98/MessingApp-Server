@@ -7,9 +7,11 @@
     "enabled": true,
     "rules": {
       "recommended": true
-    }
+    },
+    "ignore": ["*.json"]
   },
   "formatter": {
-    "enabled": true
+    "enabled": true,
+    "ignore": ["*.json"]
   }
 }

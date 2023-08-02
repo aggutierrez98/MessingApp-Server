@@ -1,71 +1,70 @@
 // Servidor de Express
-const express = require('express');
-const http = require('http');
-const socketio = require('socket.io');
-const path = require('path');
-const cors = require('cors');
+const express = require("express");
+const http = require("http");
+const socketio = require("socket.io");
+const path = require("path");
+const cors = require("cors");
 
-const Sockets = require('./sockets');
-const { dbConnection } = require('../database/config');
-const fileUpload = require('express-fileupload');
+const Sockets = require("./sockets");
+const { dbConnection } = require("../database/config");
+const fileUpload = require("express-fileupload");
 
 class Server {
+	constructor() {
+		this.app = express();
+		this.port = process.env.PORT;
 
-    constructor() {
+		// Conectar a DB
+		dbConnection();
 
-        this.app = express();
-        this.port = process.env.PORT;
+		// Http server
+		this.server = http.createServer(this.app);
 
-        // Conectar a DB
-        dbConnection();
+		// Configuraciones de sockets
+		this.io = socketio(this.server, {
+			/* configuraciones */
+		});
+	}
 
-        // Http server
-        this.server = http.createServer(this.app);
+	middlewares() {
+		// CORS
+		this.app.use(cors());
 
-        // Configuraciones de sockets
-        this.io = socketio(this.server, { /* configuraciones */ });
-    }
+		// Parseo del body
+		this.app.use(express.json());
 
-    middlewares() {
+		// Fileupload - Carga de archivos
+		this.app.use(
+			fileUpload({
+				useTempFiles: true,
+				tempFileDir: "/tmp/",
+				createParentPath: true,
+			}),
+		);
 
-        // CORS
-        this.app.use(cors());
+		// API End Points
+		this.app.use("/api/login", require("../router/auth"));
+		this.app.use("/api/mensajes", require("../router/mensajes"));
+	}
 
-        // Parseo del body
-        this.app.use(express.json());
+	// Esta configuración se puede tener aquí o como propieda de clase
+	// depende mucho de lo que necesites
+	configurarSockets() {
+		new Sockets(this.io);
+	}
 
-        // Fileupload - Carga de archivos
-        this.app.use(fileUpload({
-            useTempFiles: true,
-            tempFileDir: '/tmp/',
-            createParentPath: true
-        }));
+	execute() {
+		// Inicializar Middlewares
+		this.middlewares();
 
-        // API End Points
-        this.app.use('/api/login', require('../router/auth'));
-        this.app.use('/api/mensajes', require('../router/mensajes'));
-    }
+		// Inicializar sockets
+		this.configurarSockets();
 
-    // Esta configuración se puede tener aquí o como propieda de clase
-    // depende mucho de lo que necesites
-    configurarSockets() {
-        new Sockets(this.io);
-    }
-
-    execute() {
-
-        // Inicializar Middlewares
-        this.middlewares();
-
-        // Inicializar sockets
-        this.configurarSockets();
-
-        // Inicializar Server
-        this.server.listen(this.port, () => {
-            console.log('Server corriendo en puerto:', this.port);
-        });
-    }
-
+		// Inicializar Server
+		this.server.listen(this.port, () => {
+			console.log("Server corriendo en puerto:", this.port);
+		});
+	}
 }
 
 module.exports = Server;

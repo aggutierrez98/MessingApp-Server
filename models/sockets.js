@@ -1,90 +1,85 @@
-const { usuarioConectado, usuarioDesconectado, grabarMensaje, getMensajes, getUsuario } = require("../controllers/sockets");
+const {
+	usuarioConectado,
+	usuarioDesconectado,
+	grabarMensaje,
+	getMensajes,
+	getUsuario,
+} = require("../controllers/sockets");
 const { comprobarJWT } = require("../helpers/jwt");
 
 class Sockets {
+	constructor(io) {
+		this.io = io;
+		this.socketEvents();
+	}
 
-    constructor(io) {
+	socketEvents() {
+		// On connection
+		this.io.on("connection", async (socket) => {
+			const [valido, uid] = comprobarJWT(socket.handshake.query["x-token"]);
 
-        this.io = io;
-        this.socketEvents();
-    }
+			if (!valido) {
+				console.log("socket no identificado");
+				return socket.disconnect();
+			}
 
-    socketEvents() {
-        // On connection
-        this.io.on('connection', async (socket) => {
+			await usuarioConectado(uid);
 
-            const [valido, uid] = comprobarJWT(socket.handshake.query["x-token"])
+			//Unir al usuario a una sala de socket.io
+			socket.join(uid);
 
-            if (!valido) {
-                console.log("socket no identificado");
-                return socket.disconnect();
-            }
+			this.io.emit("usuario-conectado", uid);
 
-            await usuarioConectado(uid);
+			this.io.to(uid).emit("cargar-mensajes", await getMensajes(uid));
 
-            //Unir al usuario a una sala de socket.io
-            socket.join(uid);
+			// mensaje-personal
+			socket.on("mensaje-personal", async (payload) => {
+				const mensaje = await grabarMensaje(payload);
 
-            this.io.emit("usuario-conectado", uid)
+				this.io.to(payload.para).emit("mensaje-personal", mensaje);
+				this.io.to(payload.de).emit("mensaje-usuario", mensaje);
+			});
 
-            this.io.to(uid).emit("cargar-mensajes", await getMensajes(uid))
+			socket.on("solicitud-contacto", ({ notificacion, para }) => {
+				console.log("enviando solicitud de contacto");
+				this.io.to(para).emit("envio-solicitud", notificacion);
+			});
 
-            // mensaje-personal
-            socket.on("mensaje-personal", async (payload) => {
+			socket.on("solicitud-aceptada", async ({ de, para }) => {
+				const mensajesUsuario = await getMensajes(de);
+				const mensajesContacto = await getMensajes(para);
+				this.io.to(de).emit("cargar-mensajes", mensajesUsuario);
+				this.io.to(para).emit("cargar-mensajes", mensajesContacto);
 
-                const mensaje = await grabarMensaje(payload);
+				const usuario = await getUsuario(de);
+				const contacto = await getUsuario(para);
 
-                this.io.to(payload.para).emit("mensaje-personal", mensaje);
-                this.io.to(payload.de).emit("mensaje-usuario", mensaje);
-            })
+				this.io.to(para).emit("solicitud-aceptada", usuario);
+				this.io.to(de).emit("solicitud-aceptada", contacto);
+			});
 
-            socket.on("solicitud-contacto", ({ notificacion, para }) => {
+			socket.on("solicitud-rechazada", async ({ de, para }) => {
+				console.log("solicitud rechazada");
+				const usuario = await getUsuario(de);
+				this.io.to(para).emit("solicitud-rechazada", usuario);
+			});
 
-                console.log("enviando solicitud de contacto");
-                this.io.to(para).emit("envio-solicitud", notificacion);
-            })
+			socket.on("contacto-eliminado", async ({ de, para }) => {
+				const usuario = await getUsuario(de);
+				this.io.to(para).emit("contacto-eliminado", usuario);
 
-            socket.on("solicitud-aceptada", async ({ de, para }) => {
+				const mensajesUsuario = await getMensajes(de);
+				const mensajesContacto = await getMensajes(para);
+				this.io.to(de).emit("cargar-mensajes", mensajesUsuario);
+				this.io.to(para).emit("cargar-mensajes", mensajesContacto);
+			});
 
-                const mensajesUsuario = await getMensajes(de)
-                const mensajesContacto = await getMensajes(para)
-                this.io.to(de).emit("cargar-mensajes", mensajesUsuario)
-                this.io.to(para).emit("cargar-mensajes", mensajesContacto)
-
-                const usuario = await getUsuario(de);
-                const contacto = await getUsuario(para);
-
-                this.io.to(para).emit("solicitud-aceptada", usuario);
-                this.io.to(de).emit("solicitud-aceptada", contacto);
-            })
-
-            socket.on("solicitud-rechazada", async ({ de, para }) => {
-
-                console.log("solicitud rechazada");
-                const usuario = await getUsuario(de);
-                this.io.to(para).emit("solicitud-rechazada", usuario);
-            })
-
-            socket.on("contacto-eliminado", async ({ de, para }) => {
-
-                const usuario = await getUsuario(de);
-                this.io.to(para).emit("contacto-eliminado", usuario);
-
-                const mensajesUsuario = await getMensajes(de)
-                const mensajesContacto = await getMensajes(para)
-                this.io.to(de).emit("cargar-mensajes", mensajesUsuario)
-                this.io.to(para).emit("cargar-mensajes", mensajesContacto)
-
-            })
-
-            socket.on("disconnect", async () => {
-
-                await usuarioDesconectado(uid);
-                this.io.emit("usuario-desconectado", uid)
-            })
-
-        });
-    }
+			socket.on("disconnect", async () => {
+				await usuarioDesconectado(uid);
+				this.io.emit("usuario-desconectado", uid);
+			});
+		});
+	}
 }
 
 module.exports = Sockets;

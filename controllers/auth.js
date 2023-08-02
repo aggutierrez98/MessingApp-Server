@@ -1,38 +1,39 @@
-const { response } = require('express');
-const bcrypt = require('bcryptjs');
+const { response } = require("express");
+const bcrypt = require("bcryptjs");
 
-const Usuario = require('../models/usuario');
-const Notificacion = require('../models/notificacion');
-const { generarJWT } = require('../helpers/jwt');
-const { transporter } = require('../helpers/nodemailer-config');
-const cloudinary = require('cloudinary').v2;
+const Usuario = require("../models/usuario");
+const Notificacion = require("../models/notificacion");
+const { generarJWT } = require("../helpers/jwt");
+const { transporter } = require("../helpers/nodemailer-config");
+const cloudinary = require("cloudinary").v2;
 
 const crearUsuario = async (req, res = response) => {
+	const { nombre, email, password } = req.body;
 
-    const { nombre, email, password } = req.body;
+	try {
+		const usuario = new Usuario(req.body);
 
-    try {
+		// Encriptar contraseña
+		const salt = bcrypt.genSaltSync();
+		usuario.password = bcrypt.hashSync(password, salt);
 
-        const usuario = new Usuario(req.body);
+		hash = Math.floor(Math.random() * 100 + 54);
+		usuario.hash = hash;
 
-        // Encriptar contraseña
-        const salt = bcrypt.genSaltSync();
-        usuario.password = bcrypt.hashSync(password, salt);
+		// Guardar usuario en BD
+		await usuario.save();
 
-        hash = Math.floor((Math.random() * 100) + 54);
-        usuario.hash = hash;
+		const clientHost =
+			process.env.NODE_ENV === "production"
+				? process.env.CLIENT_URL
+				: "http://localhost:3000";
+		const url = `${clientHost}/confirm-email/${hash}`;
 
-        // Guardar usuario en BD
-        await usuario.save();
-
-        const clientHost = process.env.NODE_ENV === "production" ? process.env.CLIENT_URL : "http://localhost:3000"
-        const url = `${clientHost}/confirm-email/${hash}`;
-
-        const mailOptions = {
-            from: "agustinnodeprueba@gmail.com",
-            to: email,
-            subject: "MESSING-APP Confirmacion de email ",
-            html: `
+		const mailOptions = {
+			from: "agustinnodeprueba@gmail.com",
+			to: email,
+			subject: "MESSING-APP Confirmacion de email ",
+			html: `
                 <table border="0" cellpadding="0" cellspacing="0" width="600px" background-color="#2d3436" bgcolor="#2d3436">
                 <tr height="200px">  
                     <td bgcolor="" width="600px">
@@ -53,50 +54,48 @@ const crearUsuario = async (req, res = response) => {
                 </tr>
                 </table>
             
-            `
-        }
+            `,
+		};
 
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                res.status(500).json({
-                    ok: false,
-                    msg: "Error al enviar el email"
-                });
-            } else {
-                console.log(`Email de confirmacion enviado a: ${email}`);
-                res.status(200).json({
-                    ok: true,
-                });
-            }
-
-        });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-}
-
+		transporter.sendMail(mailOptions, (error, info) => {
+			if (error) {
+				res.status(500).json({
+					ok: false,
+					msg: "Error al enviar el email",
+				});
+			} else {
+				console.log(`Email de confirmacion enviado a: ${email}`);
+				res.status(200).json({
+					ok: true,
+				});
+			}
+		});
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 const reenviarEmail = async (req, res = response) => {
+	const { email } = req.body;
 
-    const { email } = req.body;
+	try {
+		const { hash, nombre } = await Usuario.findOne({ email });
 
-    try {
+		const clientHost =
+			process.env.NODE_ENV === "production"
+				? process.env.CLIENT_URL
+				: "http://localhost:3000";
+		const url = `${clientHost}/confirm-email/${hash}`;
 
-        const { hash, nombre } = await Usuario.findOne({ email });
-
-        const clientHost = process.env.NODE_ENV === "production" ? process.env.CLIENT_URL : "http://localhost:3000"
-        const url = `${clientHost}/confirm-email/${hash}`;
-
-        const mailOptions = {
-            from: "agustinnodeprueba@gmail.com",
-            to: email,
-            subject: "MESSING-APP Confirmacion de email ",
-            html: `
+		const mailOptions = {
+			from: "agustinnodeprueba@gmail.com",
+			to: email,
+			subject: "MESSING-APP Confirmacion de email ",
+			html: `
                 <table border="0" cellpadding="0" cellspacing="0" width="600px" background-color="#2d3436" bgcolor="#2d3436">
                 <tr height="200px">  
                     <td bgcolor="" width="600px">
@@ -117,383 +116,361 @@ const reenviarEmail = async (req, res = response) => {
                 </tr>
                 </table>
             
-            `
-        }
+            `,
+		};
 
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                res.status(500).json({
-                    ok: false,
-                    msg: "Error al enviar el email"
-                });
-            } else {
-                console.log(`Email de confirmacion enviado a: ${email}`);
-                res.status(200).json({
-                    ok: true
-                });
-            }
-
-        });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-}
+		transporter.sendMail(mailOptions, (error, info) => {
+			if (error) {
+				res.status(500).json({
+					ok: false,
+					msg: "Error al enviar el email",
+				});
+			} else {
+				console.log(`Email de confirmacion enviado a: ${email}`);
+				res.status(200).json({
+					ok: true,
+				});
+			}
+		});
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 const confirmarEmail = async (req, res) => {
+	const { id } = req.params;
 
-    const { id } = req.params;
+	try {
+		const hashExiste = await Usuario.findOne({ hash: id });
 
-    try {
-        const hashExiste = await Usuario.findOne({ hash: id });
+		if (hashExiste) {
+			const usuario = await Usuario.findByIdAndUpdate(hashExiste._id, {
+				active: true,
+				hash: null,
+			});
 
-        if (hashExiste) {
-
-            const usuario = await Usuario.findByIdAndUpdate(hashExiste._id, { active: true, hash: null })
-
-            res.status(202).json({
-                ok: true,
-                usuario
-            })
-
-        } else {
-
-            res.status(401).json({
-                ok: false,
-                msg: 'Fallo al verificar email'
-            });
-        }
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-}
+			res.status(202).json({
+				ok: true,
+				usuario,
+			});
+		} else {
+			res.status(401).json({
+				ok: false,
+				msg: "Fallo al verificar email",
+			});
+		}
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 const editarUsuario = async (req, res = response) => {
+	try {
+		const id = req.params.id;
+		const { descripcion, nombre } = req.body;
+		const imagen = req.files?.imagen;
 
-    try {
-        const id = req.params.id;
-        const { descripcion, nombre } = req.body;
-        const imagen = req.files?.imagen;
+		if (nombre) {
+			await Usuario.findByIdAndUpdate(id, { nombre });
+			res.json({
+				ok: true,
+			});
+		} else if (descripcion) {
+			await Usuario.findByIdAndUpdate(id, { descripcion });
+			res.json({
+				ok: true,
+			});
+		} else if (imagen) {
+			const usuario = await Usuario.findById(id);
 
-        if (nombre) {
-            await Usuario.findByIdAndUpdate(id, { nombre });
-            res.json({
-                ok: true,
-            });
-        }
-        else if (descripcion) {
-            await Usuario.findByIdAndUpdate(id, { descripcion });
-            res.json({
-                ok: true,
-            });
-        }
-        else if (imagen) {
+			// Limpiar imágenes previas
+			if (usuario.imagen) {
+				const nombreArr = usuario.imagen.split("/");
+				const nombre = nombreArr[nombreArr.length - 1];
+				const [public_id] = nombre.split(".");
+				cloudinary.uploader.destroy(public_id);
+			}
 
-            const usuario = await Usuario.findById(id);
+			const { tempFilePath } = imagen;
+			const { secure_url } = await cloudinary.uploader.upload(tempFilePath);
 
-            // Limpiar imágenes previas
-            if (usuario.imagen) {
-                const nombreArr = usuario.imagen.split('/');
-                const nombre = nombreArr[nombreArr.length - 1];
-                const [public_id] = nombre.split(".");
-                cloudinary.uploader.destroy(public_id);
-            }
+			usuario.imagen = secure_url;
 
-            const { tempFilePath } = imagen;
-            const { secure_url } = await cloudinary.uploader.upload(tempFilePath);
+			await usuario.save();
 
-            usuario.imagen = secure_url;
-
-            await usuario.save();
-
-            res.json({
-                ok: true,
-                imagen: usuario.imagen
-            });
-
-        } else {
-            res.status(400).json({
-                ok: false,
-            });
-        }
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-}
-
-
+			res.json({
+				ok: true,
+				imagen: usuario.imagen,
+			});
+		} else {
+			res.status(400).json({
+				ok: false,
+			});
+		}
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 // login
 const login = async (req, res) => {
+	const { email, password } = req.body;
 
-    const { email, password } = req.body;
+	try {
+		// Verificar si existe el correo
+		const usuarioDB = await Usuario.findOne({ email })
+			.populate("contactos", [
+				"nombre",
+				"email",
+				"descripcion",
+				"imagen",
+				"online",
+			])
+			.populate({
+				path: "notificaciones",
+				populate: [{ path: "de" }],
+			});
 
-    try {
+		if (!usuarioDB) {
+			return res.status(404).json({
+				ok: false,
+				msg: "El email no se encuentra registrado",
+			});
+		}
 
-        // Verificar si existe el correo
-        let usuarioDB = await Usuario.findOne({ email })
-            .populate("contactos", ["nombre", "email", "descripcion", "imagen", "online"])
-            .populate({
-                path: 'notificaciones',
-                populate: [
-                    { path: 'de' },
-                ],
-            });
+		if (usuarioDB.active === false) {
+			return res.status(401).json({
+				ok: false,
+				msg: "Error al ingresar. Por favor confirmar email",
+			});
+		}
 
+		// Validar el password
+		const validPassword = bcrypt.compareSync(password, usuarioDB.password);
+		if (!validPassword) {
+			return res.status(404).json({
+				ok: false,
+				msg: "Usuario o contraseña incorrectos",
+			});
+		}
 
-        if (!usuarioDB) {
-            return res.status(404).json({
-                ok: false,
-                msg: 'El email no se encuentra registrado'
-            });
-        }
+		// Generar el JWT
+		const token = await generarJWT(usuarioDB.id);
 
-        if (usuarioDB.active === false) {
-            return res.status(401).json({
-                ok: false,
-                msg: 'Error al ingresar. Por favor confirmar email'
-            });
-        }
-
-        // Validar el password
-        const validPassword = bcrypt.compareSync(password, usuarioDB.password);
-        if (!validPassword) {
-            return res.status(404).json({
-                ok: false,
-                msg: 'Usuario o contraseña incorrectos'
-            });
-        }
-
-        // Generar el JWT
-        const token = await generarJWT(usuarioDB.id);
-
-        res.json({
-            ok: true,
-            usuario: usuarioDB,
-            token
-        });
-
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-
-}
-
+		res.json({
+			ok: true,
+			usuario: usuarioDB,
+			token,
+		});
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 // renewToken
 const renewToken = async (req, res) => {
+	const uid = req.uid;
 
-    const uid = req.uid;
+	try {
+		// Generar un nuevo JWT
+		const token = await generarJWT(uid);
 
-    try {
+		// Obtener el usuario por UID
+		const usuario = await Usuario.findById(uid)
+			.populate("contactos", [
+				"nombre",
+				"email",
+				"descripcion",
+				"imagen",
+				"online",
+			])
+			.populate({
+				path: "notificaciones",
+				populate: [{ path: "de" }],
+			});
 
-        // Generar un nuevo JWT
-        const token = await generarJWT(uid);
-
-        // Obtener el usuario por UID
-        const usuario = await Usuario.findById(uid)
-            .populate("contactos", ["nombre", "email", "descripcion", "imagen", "online"])
-            .populate({
-                path: 'notificaciones',
-                populate: [
-                    { path: 'de' },
-                ],
-            });
-
-        res.json({
-            ok: true,
-            usuario,
-            token,
-        })
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-}
-
+		res.json({
+			ok: true,
+			usuario,
+			token,
+		});
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 const agregarContacto = async (req, res) => {
+	const cid = req.body.id;
+	const uid = req.params.id;
 
-    const cid = req.body.id;
-    const uid = req.params.id;
+	try {
+		const usuario = await Usuario.findById(uid);
+		const contacto = await Usuario.findById(cid);
 
-    try {
+		usuario.contactos = [...usuario.contactos, contacto._id];
 
-        const usuario = await Usuario.findById(uid);
-        const contacto = await Usuario.findById(cid);
+		await usuario.save();
 
-        usuario.contactos = [...usuario.contactos, contacto._id];
-
-        await usuario.save();
-
-        res.json({
-            ok: true,
-        })
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-
-}
+		res.json({
+			ok: true,
+		});
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 const eliminarContacto = async (req, res) => {
-    const cid = req.body.id;
-    const uid = req.params.id;
+	const cid = req.body.id;
+	const uid = req.params.id;
 
-    try {
+	try {
+		const usuario = await Usuario.findById(uid);
 
-        const usuario = await Usuario.findById(uid);
+		usuario.contactos = usuario.contactos.filter(
+			(contacto) => contacto._id.toString() !== cid.toString(),
+		);
 
-        usuario.contactos = usuario.contactos.filter((contacto) => contacto._id.toString() !== cid.toString());
+		await usuario.save();
 
-        await usuario.save();
-
-        res.json({
-            ok: true,
-        })
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-}
+		res.json({
+			ok: true,
+		});
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 const mostrarUsuarios = async (req, res) => {
-    const uid = req.uid;
+	const uid = req.uid;
+	const { email } = req.params;
 
-    const { email } = req.params;
-    // const regexp = new RegExp(termino, "i");
+	try {
+		const { contactos } = await Usuario.findById(uid);
+		const usuarios = await Usuario.find();
 
-    try {
+		const usuariosRestantes = usuarios.filter((usuario) => {
+			if (!contactos.includes(usuario._id) && uid !== usuario._id.toString()) {
+				return usuario;
+			}
+		});
 
-        const { contactos } = await Usuario.findById(uid);
-        const usuarios = await Usuario.find();
+		const usuariosEncontrados = usuariosRestantes.filter((usuario) => {
+			if (usuario.email.includes(email)) {
+				return usuario;
+			}
+		});
 
-        const usuariosRestantes = usuarios.filter((usuario) => {
-            if (!contactos.includes(usuario._id) && uid !== usuario._id.toString()) {
-                return usuario
-            }
-        });
-
-        const usuariosEncontrados = usuariosRestantes.filter(usuario => {
-            if (usuario.email.includes(email)) {
-                return usuario
-            }
-        })
-
-        res.json({
-            ok: true,
-            usuarios: usuariosEncontrados,
-        })
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-}
+		res.json({
+			ok: true,
+			usuarios: usuariosEncontrados,
+		});
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 const agregarNotificacion = async (req, res) => {
-    const { para, ...body } = req.body
+	const { para, ...body } = req.body;
 
+	try {
+		const notificacionCreada = new Notificacion(body);
+		await notificacionCreada.save();
 
-    try {
+		const usuario = await Usuario.findById(para);
 
-        const notificacionCreada = new Notificacion(body)
+		usuario.notificaciones = [
+			notificacionCreada._id,
+			...usuario.notificaciones,
+		];
 
-        await notificacionCreada.save();
+		await usuario.save();
 
-        const usuario = await Usuario.findById(para);
+		const notificacion = await Notificacion.findById(
+			notificacionCreada._id,
+		).populate("de");
 
-        usuario.notificaciones = [notificacionCreada._id, ...usuario.notificaciones]
-
-        await usuario.save();
-
-        const notificacion = await Notificacion.findById(notificacionCreada._id).populate("de")
-
-        res.json({
-            notificacion,
-            ok: true,
-        })
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-}
+		res.json({
+			notificacion,
+			ok: true,
+		});
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 const eliminarNotificacion = async (req, res) => {
-    const uid = req.uid;
-    const id = req.params.id;
+	const uid = req.uid;
+	const id = req.params.id;
 
-    try {
-        const usuario = await Usuario.findById(uid);
+	try {
+		const usuario = await Usuario.findById(uid);
 
-        usuario.notificaciones = usuario.notificaciones.filter(notificacion => notificacion._id.toString() !== id.toString())
+		usuario.notificaciones = usuario.notificaciones.filter(
+			(notificacion) => notificacion._id.toString() !== id.toString(),
+		);
 
-        await Notificacion.findByIdAndDelete(id)
+		await Notificacion.findByIdAndDelete(id);
 
-        await usuario.save();
+		await usuario.save();
 
-        res.json({
-            ok: true,
-        })
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        });
-    }
-}
-
+		res.json({
+			ok: true,
+		});
+	} catch (error) {
+		console.log(error);
+		res.status(500).json({
+			ok: false,
+			msg: "Hable con el administrador",
+		});
+	}
+};
 
 module.exports = {
-    login,
-    renewToken,
-    editarUsuario,
-    confirmarEmail,
-    crearUsuario,
-    reenviarEmail,
-    agregarContacto,
-    eliminarContacto,
-    mostrarUsuarios,
-    agregarNotificacion,
-    eliminarNotificacion
-}
+	login,
+	renewToken,
+	editarUsuario,
+	confirmarEmail,
+	crearUsuario,
+	reenviarEmail,
+	agregarContacto,
+	eliminarContacto,
+	mostrarUsuarios,
+	agregarNotificacion,
+	eliminarNotificacion,
+};

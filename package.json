@@ -6,7 +6,9 @@
   "scripts": {
     "test": "NODE_ENV=test jest --verbose",
     "dev": "NODE_ENV=development nodemon index.js",
-    "start": "NODE_ENV=production node index.js"
+    "start": "NODE_ENV=production node index.js",
+    "rome-format": "npx rome format --write .",
+    "rome-lint": "npx rome check --apply ."
   },
   "author": "",
   "license": "ISC",
